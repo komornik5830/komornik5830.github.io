@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<title>Token Clicker</title>
+<style>
+    body {
+        text-align: center;
+        font-family: Arial;
+        margin-top: 50px;
+        position: relative;
+    }
+
+    #postac {
+        font-family: monospace;
+        font-size: 20px;
+        cursor: pointer;
+        white-space: pre;
+        margin-bottom: 20px;
+        user-select: none;
+    }
+
+    #punkty, #poziom {
+        font-size: 30px;
+        margin-top: 20px;
+    }
+
+    button {
+        font-size: 20px;
+        margin: 10px;
+        cursor: pointer;
+    }
+
+    .punktEfekt {
+        position: absolute;
+        font-size: 35px;
+        font-weight: bold;
+        color: rgb(255, 0, 21);
+        pointer-events: none;
+        transition: transform 1s ease-out, opacity 1s ease-out;
+    }
+</style>
+</head>
+<body>
+
+<div id="postac"></div>
+<div id="punkty">Punkty: 0</div>
+<div id="poziom">Poziom kota: 1 (0/2 kliknięć)</div>
+
+<div>
+    <button id="autoBtn">Auto +2 pkt co 5s (koszt: 100)</button>
+    <button id="clickBtn">Klik x2 (koszt: 200)</button>
+</div>
+
+<script>
+let punkty = 0;
+let poziom = 1;
+let klikDoNastepnego = 2;
+let klikAktualne = 0;
+
+let autoKupione = false;
+let klikx2Kupione = false;
+
+let zamknieta =
+`⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢏⠳⢄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠠⣠⠞⠉⡏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡄⠀⠈⠑⠢⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡞⠁⠀⠀⣸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢱⠀⠀⠀⠀⠀⠈⠑⢦⡀⠀⠀⠀⠀⠀⠀⠀⠀⣠⠞⠁⠀⠀⠀⠀⡸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢣⠀⠀⠀⠀⠀⠀⠀⠀⠉⠒⢤⣀⠀⢌⡴⠋⠀⠀⠀⠀⠀⠀⢰⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⡆⠀⠀⠀⠀⠀⣠⠤⠤⣀⠀⠀⠁⠋⠁⠀⠀⠀⠀⠀⠀⠀⡼⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⡄⠀⠀⠀⡴⠁⠀⠀⣾⡆⠀⠀⠀⡞⠉⠉⣲⠀⠀⠀⢠⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⠀⠀⠀⢸⠀⠀⠀⣿⡇⠀⠀⠀⡏⠀⠀⣿⡇⠀⠀⣸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢳⠀⠀⠈⠀⠀⠀⠉⠁⠀⠀⠀⠓⠀⠀⠻⠃⠀⠀⡟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢣⠀⠀⠀⢠⠏⣧⠖⠒⠒⣆⡀⠀⠀⠀⠀⠀⡾⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠳⣄⠀⢱⠀⠀⠀⠀⠀⠀⠈⢣⠀⠀⠀⡟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⠧⣀⣀⠀⠀⠀⠀⣸⢀⡰⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠈⠉⠉⠉⠉⠁⠀⠀⠀`;
+
+        let otwarta =
+`⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢏⠳⢄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⠖⠋⠉⡏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡄⠀⠈⠑⠢⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡤⠚⠁⠀⠀⠀⣸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢱⠀⠀⠀⠀⠀⠈⠑⢦⡀⠀⠀⠀⠀⠀⠀⢀⡴⠉⠀⠀⠀⠀⠀⠀⡸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢣⠀⠀⠀⠀⠀⠀⠀⠀⠉⠒⢤⣀⠀⡜⠁⠀⠀⠀⠀⠀⠀⠀⢰⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⡆⠀⢀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠁⠃⠀⠀⠀⠀⢀⣀⠀⠀⡼⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⡄⠀⠉⠳⢄⡀⠀⠀⠀⠀⠀⠀⠀⢀⣀⡔⠊⠉⠀⠀⢠⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⠀⠀⠀⠀⠀⠉⠙⢲⠄⠀⠀⠺⣍⠁⠀⠀⠀⠀⠀⣸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢳⠀⠀⣀⡠⠖⠋⠉⠀⠀⠀⠀⠈⠓⢤⡀⠀⠀⠀⡟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢣⠈⠁⠀⠀⣤⠀⣀⣀⣀⣀⠀⡄⠀⠀⠀⠀⡾⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠳⣄⠀⢠⠏⠛⠀⠀⠀⠀⠛⢹⠀⠀⠀⡟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠓⠧⣀⣀⠀⠀⠀⠀⠀⣇⡰⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+      ⠈⠉⠉⠉⠉⠁⠀`;
+
+document.getElementById("postac").textContent = zamknieta;
+
+// Funkcja spawnująca efekt punktów
+function pokazPunktyKlikniecia(x, y, ilosc) {
+    const efekt = document.createElement("div");
+    efekt.classList.add("punktEfekt");
+    efekt.textContent = "+" + ilosc;
+    document.body.appendChild(efekt);
+
+    efekt.style.left = x + "px";
+    efekt.style.top = y + "px";
+
+    // animacja: unoszenie i zanikanie
+    setTimeout(() => {
+        efekt.style.transform = "translateY(-50px)";
+        efekt.style.opacity = "0";
+    }, 10);
+
+    // usuń element po animacji
+    setTimeout(() => efekt.remove(), 1000);
+}
+
+function klik(event) {
+    let punktyNaKlik = klikx2Kupione ? 2 : 1;
+    punkty += punktyNaKlik;
+    klikAktualne += 1;
+
+    // animacja kota
+    document.getElementById("postac").textContent = otwarta;
+    setTimeout(() => {
+        document.getElementById("postac").textContent = zamknieta;
+    }, 150);
+
+    // spawn efektu punktów
+    pokazPunktyKlikniecia(event.pageX, event.pageY, punktyNaKlik);
+
+    // sprawdzanie poziomu
+    if (klikAktualne >= klikDoNastepnego) {
+        poziom += 1;
+        klikAktualne = 0;
+        klikDoNastepnego += 2;
+        punkty += 1; // punkt za awans poziomu
+    }
+
+    // aktualizacja wartości
+    document.getElementById("punkty").textContent = "Punkty: " + punkty;
+    document.getElementById("poziom").textContent =
+        "Poziom kota: " + poziom + " (" + klikAktualne + "/" + klikDoNastepnego + " kliknięć)";
+}
+
+document.getElementById("postac").onclick = klik;
+
+// Ulepszenia
+document.getElementById("autoBtn").onclick = function() {
+    if (!autoKupione && punkty >= 100) {
+        punkty -= 100;
+        autoKupione = true;
+        this.textContent = "Zakupiono";
+        document.getElementById("punkty").textContent = "Punkty: " + punkty;
+
+        setInterval(() => {
+            punkty += 2;
+            document.getElementById("punkty").textContent = "Punkty: " + punkty;
+        }, 5000);
+    }
+}
+
+document.getElementById("clickBtn").onclick = function() {
+    if (!klikx2Kupione && punkty >= 200) {
+        punkty -= 200;
+        klikx2Kupione = true;
+        this.textContent = "Zakupiono";
+        document.getElementById("punkty").textContent = "Punkty: " + punkty;
+    }
+}
+</script>
+
+</body>
+</html>
