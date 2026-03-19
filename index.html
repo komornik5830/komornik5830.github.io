@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="pl">
 <head>
@@ -53,6 +52,8 @@
 <div>
     <button id="autoBtn">Auto +2 pkt co 5s (koszt: 100)</button>
     <button id="clickBtn">Klik x2 (koszt: 200)</button>
+    <button id="click3Btn">Klik x3 (koszt: 350)</button>
+    <button id="lvlBoostBtn">Lepszy level (koszt: 450)</button>
 </div>
 
 <div>
@@ -64,20 +65,208 @@
 </div>
 
 <script>
-let punkty = 0;
-let poziom = 1;
-let klikDoNastepnego = 2;
-let klikAktualne = 0;
+/* =======================
+   LOGIKA GRY
+======================= */
 
-let autoKupione = false;
-let klikx2Kupione = false;
+const game = {
+    punkty: 0,
+    poziom: 1,
+    klikAktualne: 0,
+    klikDoNastepnego: 2,
 
-// SKINY
+    upgradey: {
+        auto: { count: 0, baseCost: 100 },
+        klik2: { count: 0, baseCost: 200 },
+        klik3: { count: 0, baseCost: 350 },
+        lvlBoost: { count: 0, baseCost: 450 }
+    }
+};
+
 let aktualnyKolor = "black";
+
+/* =======================
+   UI
+======================= */
+
+function render() {
+    document.getElementById("punkty").textContent = "Punkty: " + game.punkty;
+    document.getElementById("poziom").textContent =
+        "Poziom kota: " + game.poziom + " (" + game.klikAktualne + "/" + game.klikDoNastepnego + ")";
+}
+
+function getCost(upg) {
+    return Math.floor(upg.baseCost * Math.pow(1.25, upg.count));
+}
+
+/* =======================
+   CLICK EFFECT
+======================= */
+
+function pokazPunktyKlikniecia(x, y, ilosc) {
+    const efekt = document.createElement("div");
+    efekt.classList.add("punktEfekt");
+    efekt.textContent = "+" + ilosc;
+    document.body.appendChild(efekt);
+
+    efekt.style.left = x + "px";
+    efekt.style.top = y + "px";
+
+    setTimeout(() => {
+        efekt.style.transform = "translateY(-50px)";
+        efekt.style.opacity = "0";
+    }, 10);
+
+    setTimeout(() => efekt.remove(), 1000);
+}
+
+/* =======================
+   KLIK LOGIKA
+======================= */
+
+function klik(event) {
+
+    let mnoznik = 1;
+
+    if (game.upgradey.klik2.count > 0) {
+        mnoznik *= Math.pow(2, game.upgradey.klik2.count);
+    }
+
+    if (game.upgradey.klik3.count > 0) {
+        mnoznik *= Math.pow(3, game.upgradey.klik3.count);
+    }
+
+    let gain = mnoznik;
+
+    game.punkty += gain;
+    game.klikAktualne += 1;
+
+    let postac = document.getElementById("postac");
+    postac.textContent = otwarta;
+
+    setTimeout(() => {
+        postac.textContent = zamknieta;
+    }, 150);
+
+    pokazPunktyKlikniecia(event.pageX, event.pageY, gain);
+
+    if (game.klikAktualne >= game.klikDoNastepnego) {
+        game.poziom += 1;
+        game.klikAktualne = 0;
+        game.klikDoNastepnego += 2;
+
+        let bonus = game.upgradey.lvlBoost.count > 0 ? 10 * game.upgradey.lvlBoost.count : 1;
+        game.punkty += bonus;
+    }
+
+    render();
+}
+
+document.getElementById("postac").onclick = klik;
+
+/* =======================
+   AUTO INCOME
+======================= */
+
+setInterval(() => {
+    let auto = game.upgradey.auto.count;
+    if (auto > 0) {
+        game.punkty += 2 * auto;
+        render();
+    }
+}, 5000);
+
+/* =======================
+   BUY UPGRADE
+======================= */
+
+function buyUpgrade(key, button) {
+    const upg = game.upgradey[key];
+    const cost = getCost(upg);
+
+    if (game.punkty >= cost) {
+        game.punkty -= cost;
+        upg.count++;
+
+        button.textContent = key + " (lvl " + upg.count + ") koszt: " + getCost(upg);
+
+        render();
+    }
+}
+
+/* =======================
+   BUTTONS
+======================= */
+
+document.getElementById("autoBtn").onclick = function() {
+    buyUpgrade("auto", this);
+}
+
+document.getElementById("clickBtn").onclick = function() {
+    buyUpgrade("klik2", this);
+}
+
+document.getElementById("click3Btn").onclick = function() {
+    buyUpgrade("klik3", this);
+}
+
+document.getElementById("lvlBoostBtn").onclick = function() {
+    buyUpgrade("lvlBoost", this);
+}
+
+/* =======================
+   SKINS (bez zmian)
+======================= */
+
 let redKupione = false;
 let greenKupione = false;
 let blueKupione = false;
 let yellowKupione = false;
+
+document.getElementById("redSkin").onclick = function() {
+    if (!redKupione && game.punkty >= 500) {
+        game.punkty -= 500;
+        redKupione = true;
+        this.textContent = "Czerwony (posiadany)";
+    }
+    if (redKupione) aktualnyKolor = "red";
+    document.getElementById("postac").style.color = aktualnyKolor;
+    render();
+}
+
+document.getElementById("greenSkin").onclick = function() {
+    if (!greenKupione && game.punkty >= 500) {
+        game.punkty -= 500;
+        greenKupione = true;
+        this.textContent = "Zielony (posiadany)";
+    }
+    if (greenKupione) aktualnyKolor = "green";
+    document.getElementById("postac").style.color = aktualnyKolor;
+    render();
+}
+
+document.getElementById("blueSkin").onclick = function() {
+    if (!blueKupione && game.punkty >= 500) {
+        game.punkty -= 500;
+        blueKupione = true;
+        this.textContent = "Niebieski (posiadany)";
+    }
+    if (blueKupione) aktualnyKolor = "blue";
+    document.getElementById("postac").style.color = aktualnyKolor;
+    render();
+}
+
+document.getElementById("yellowSkin").onclick = function() {
+    if (!yellowKupione && game.punkty >= 1000) {
+        game.punkty -= 1000;
+        yellowKupione = true;
+        this.textContent = "Żółty (posiadany)";
+    }
+    if (yellowKupione) aktualnyKolor = "yellow";
+    document.getElementById("postac").style.color = aktualnyKolor;
+    render();
+}
+
 
 let zamknieta =
 `⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
@@ -109,125 +298,11 @@ let otwarta =
       ⠈⠉⠉⠉⠉⠁⠀`;
 
 document.getElementById("postac").textContent = zamknieta;
-document.getElementById("postac").style.color = aktualnyKolor;
+render();
 
-function pokazPunktyKlikniecia(x, y, ilosc) {
-    const efekt = document.createElement("div");
-    efekt.classList.add("punktEfekt");
-    efekt.textContent = "+" + ilosc;
-    document.body.appendChild(efekt);
-
-    efekt.style.left = x + "px";
-    efekt.style.top = y + "px";
-
-    setTimeout(() => {
-        efekt.style.transform = "translateY(-50px)";
-        efekt.style.opacity = "0";
-    }, 10);
-
-    setTimeout(() => efekt.remove(), 1000);
-}
-
-function klik(event) {
-    let punktyNaKlik = klikx2Kupione ? 2 : 1;
-    punkty += punktyNaKlik;
-    klikAktualne += 1;
-
-    let postac = document.getElementById("postac");
-    postac.textContent = otwarta;
-    postac.style.color = aktualnyKolor;
-
-    setTimeout(() => {
-        postac.textContent = zamknieta;
-        postac.style.color = aktualnyKolor;
-    }, 150);
-
-    pokazPunktyKlikniecia(event.pageX, event.pageY, punktyNaKlik);
-
-    if (klikAktualne >= klikDoNastepnego) {
-        poziom += 1;
-        klikAktualne = 0;
-        klikDoNastepnego += 2;
-        punkty += 1;
-    }
-
-    document.getElementById("punkty").textContent = "Punkty: " + punkty;
-    document.getElementById("poziom").textContent =
-        "Poziom kota: " + poziom + " (" + klikAktualne + "/" + klikDoNastepnego + " kliknięć)";
-}
-
-document.getElementById("postac").onclick = klik;
-
-document.getElementById("autoBtn").onclick = function() {
-    if (!autoKupione && punkty >= 100) {
-        punkty -= 100;
-        autoKupione = true;
-        this.textContent = "Zakupiono";
-        document.getElementById("punkty").textContent = "Punkty: " + punkty;
-
-        setInterval(() => {
-            punkty += 2;
-            document.getElementById("punkty").textContent = "Punkty: " + punkty;
-        }, 5000);
-    }
-}
-
-document.getElementById("clickBtn").onclick = function() {
-    if (!klikx2Kupione && punkty >= 200) {
-        punkty -= 200;
-        klikx2Kupione = true;
-        this.textContent = "Zakupiono";
-        document.getElementById("punkty").textContent = "Punkty: " + punkty;
-    }
-}
-
-// SKINY
-
-document.getElementById("redSkin").onclick = function() {
-    if (!redKupione && punkty >= 500) {
-        punkty -= 500;
-        redKupione = true;
-        aktualnyKolor = "red";
-        this.textContent = "Zakupiono";
-        document.getElementById("punkty").textContent = "Punkty: " + punkty;
-        document.getElementById("postac").style.color = aktualnyKolor;
-    }
-}
-
-document.getElementById("greenSkin").onclick = function() {
-    if (!greenKupione && punkty >= 500) {
-        punkty -= 500;
-        greenKupione = true;
-        aktualnyKolor = "green";
-        this.textContent = "Zakupiono";
-        document.getElementById("punkty").textContent = "Punkty: " + punkty;
-        document.getElementById("postac").style.color = aktualnyKolor;
-    }
-}
-
-document.getElementById("blueSkin").onclick = function() {
-    if (!blueKupione && punkty >= 500) {
-        punkty -= 500;
-        blueKupione = true;
-        aktualnyKolor = "blue";
-        this.textContent = "Zakupiono";
-        document.getElementById("punkty").textContent = "Punkty: " + punkty;
-        document.getElementById("postac").style.color = aktualnyKolor;
-    }
-}
-
-document.getElementById("yellowSkin").onclick = function() {
-    if (!yellowKupione && punkty >= 1000) {
-        punkty -= 1000;
-        yellowKupione = true;
-        aktualnyKolor = "yellow";
-        this.textContent = "Zakupiono";
-        document.getElementById("punkty").textContent = "Punkty: " + punkty;
-        document.getElementById("postac").style.color = aktualnyKolor;
-    }
-}
+window.game = game;
+window.render = render;
 </script>
 
 </body>
 </html>
-```
