@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="pl">
 <head>
@@ -19,6 +20,7 @@
         margin-bottom: 20px;
         user-select: none;
         height: 400px;
+        color: black;
     }
 
     #punkty, #poziom {
@@ -53,6 +55,14 @@
     <button id="clickBtn">Klik x2 (koszt: 200)</button>
 </div>
 
+<div>
+    <h2>Sklep skinów</h2>
+    <button id="redSkin">Czerwony (500)</button>
+    <button id="greenSkin">Zielony (500)</button>
+    <button id="blueSkin">Niebieski (500)</button>
+    <button id="yellowSkin">Żółty (1000)</button>
+</div>
+
 <script>
 let punkty = 0;
 let poziom = 1;
@@ -61,6 +71,13 @@ let klikAktualne = 0;
 
 let autoKupione = false;
 let klikx2Kupione = false;
+
+// SKINY
+let aktualnyKolor = "black";
+let redKupione = false;
+let greenKupione = false;
+let blueKupione = false;
+let yellowKupione = false;
 
 let zamknieta =
 `⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
@@ -77,7 +94,7 @@ let zamknieta =
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⠧⣀⣀⠀⠀⠀⠀⣸⢀⡰⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠈⠉⠉⠉⠉⠁⠀⠀⠀`;
 
-        let otwarta =
+let otwarta =
 `⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢏⠳⢄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⠖⠋⠉⡏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡄⠀⠈⠑⠢⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡤⠚⠁⠀⠀⠀⣸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢱⠀⠀⠀⠀⠀⠈⠑⢦⡀⠀⠀⠀⠀⠀⠀⢀⡴⠉⠀⠀⠀⠀⠀⠀⡸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
@@ -92,8 +109,8 @@ let zamknieta =
       ⠈⠉⠉⠉⠉⠁⠀`;
 
 document.getElementById("postac").textContent = zamknieta;
+document.getElementById("postac").style.color = aktualnyKolor;
 
-// Funkcja spawnująca efekt punktów
 function pokazPunktyKlikniecia(x, y, ilosc) {
     const efekt = document.createElement("div");
     efekt.classList.add("punktEfekt");
@@ -103,13 +120,11 @@ function pokazPunktyKlikniecia(x, y, ilosc) {
     efekt.style.left = x + "px";
     efekt.style.top = y + "px";
 
-    // animacja: unoszenie i zanikanie
     setTimeout(() => {
         efekt.style.transform = "translateY(-50px)";
         efekt.style.opacity = "0";
     }, 10);
 
-    // usuń element po animacji
     setTimeout(() => efekt.remove(), 1000);
 }
 
@@ -118,24 +133,24 @@ function klik(event) {
     punkty += punktyNaKlik;
     klikAktualne += 1;
 
-    // animacja kota
-    document.getElementById("postac").textContent = otwarta;
+    let postac = document.getElementById("postac");
+    postac.textContent = otwarta;
+    postac.style.color = aktualnyKolor;
+
     setTimeout(() => {
-        document.getElementById("postac").textContent = zamknieta;
+        postac.textContent = zamknieta;
+        postac.style.color = aktualnyKolor;
     }, 150);
 
-    // spawn efektu punktów
     pokazPunktyKlikniecia(event.pageX, event.pageY, punktyNaKlik);
 
-    // sprawdzanie poziomu
     if (klikAktualne >= klikDoNastepnego) {
         poziom += 1;
         klikAktualne = 0;
         klikDoNastepnego += 2;
-        punkty += 1; // punkt za awans poziomu
+        punkty += 1;
     }
 
-    // aktualizacja wartości
     document.getElementById("punkty").textContent = "Punkty: " + punkty;
     document.getElementById("poziom").textContent =
         "Poziom kota: " + poziom + " (" + klikAktualne + "/" + klikDoNastepnego + " kliknięć)";
@@ -143,7 +158,6 @@ function klik(event) {
 
 document.getElementById("postac").onclick = klik;
 
-// Ulepszenia
 document.getElementById("autoBtn").onclick = function() {
     if (!autoKupione && punkty >= 100) {
         punkty -= 100;
@@ -166,7 +180,54 @@ document.getElementById("clickBtn").onclick = function() {
         document.getElementById("punkty").textContent = "Punkty: " + punkty;
     }
 }
+
+// SKINY
+
+document.getElementById("redSkin").onclick = function() {
+    if (!redKupione && punkty >= 500) {
+        punkty -= 500;
+        redKupione = true;
+        aktualnyKolor = "red";
+        this.textContent = "Zakupiono";
+        document.getElementById("punkty").textContent = "Punkty: " + punkty;
+        document.getElementById("postac").style.color = aktualnyKolor;
+    }
+}
+
+document.getElementById("greenSkin").onclick = function() {
+    if (!greenKupione && punkty >= 500) {
+        punkty -= 500;
+        greenKupione = true;
+        aktualnyKolor = "green";
+        this.textContent = "Zakupiono";
+        document.getElementById("punkty").textContent = "Punkty: " + punkty;
+        document.getElementById("postac").style.color = aktualnyKolor;
+    }
+}
+
+document.getElementById("blueSkin").onclick = function() {
+    if (!blueKupione && punkty >= 500) {
+        punkty -= 500;
+        blueKupione = true;
+        aktualnyKolor = "blue";
+        this.textContent = "Zakupiono";
+        document.getElementById("punkty").textContent = "Punkty: " + punkty;
+        document.getElementById("postac").style.color = aktualnyKolor;
+    }
+}
+
+document.getElementById("yellowSkin").onclick = function() {
+    if (!yellowKupione && punkty >= 1000) {
+        punkty -= 1000;
+        yellowKupione = true;
+        aktualnyKolor = "yellow";
+        this.textContent = "Zakupiono";
+        document.getElementById("punkty").textContent = "Punkty: " + punkty;
+        document.getElementById("postac").style.color = aktualnyKolor;
+    }
+}
 </script>
 
 </body>
 </html>
+```
