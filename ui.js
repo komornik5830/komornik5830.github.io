@@ -5,7 +5,8 @@ import {
     toggleEquip,
     subscribe,
     buySkin,
-    setSkin
+    setSkin,
+    getUpgradeCost
 } from "./game.js";
 
 const zamknieta = `
@@ -20,8 +21,8 @@ const zamknieta = `
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢣⠀⠀⠀⢠⠏⣧⠖⠒⠒⣆⡀⠀⠀⠀⠀⠀⡾⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠳⣄⠀⢱⠀⠀⠀⠀⠀⠀⠈⢣⠀⠀⠀⡟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⠧⣀⣀⠀⠀⠀⠀⣸⢀⡰⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠈⠉⠉⠉⠉⠁⠀`
-;
+⠀⠀⠀⠀⠀⠀⠈⠉⠉⠉⠉⠁⠀⠀⠀
+`;
 
 const otwarta = `
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢏⠳⢄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠠⣠⠞⠉⡏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
@@ -35,8 +36,8 @@ const otwarta = `
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢣⠈⠁⠀⠀⣤⠀⣀⣀⣀⣀⠀⡄⠀⠀⠀⠀⡾⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠳⣄⠀⢠⠏⠛⠀⠀⠀⠀⠛⢹⠀⠀⠀⡟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠓⠧⣀⣀⠀⠀⠀⠀⠀⣇⡰⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-      ⠈⠉⠉⠉⠉⠁⠀`
-;
+      ⠈⠉⠉⠉⠉⠁⠀
+`;
 
 const game = window.game;
 
@@ -77,13 +78,11 @@ function render() {
 
     renderInventory();
     renderSkins();
-    renderUpgrades(); // 🔥 dynamiczne upgrade
+    renderUpgrades();
     applySkin();
 
-    const chestBtn = document.getElementById("chestBtn");
-    if (chestBtn) {
-        chestBtn.textContent = "Skrzynka (" + game.chestCost + ")";
-    }
+    document.getElementById("chestBtn").textContent =
+        "Skrzynka (" + game.chestCost + ")";
 }
 
 // ===== UPGRADE UI =====
@@ -96,11 +95,15 @@ function renderUpgrades() {
     Object.entries(game.upgradey).forEach(([key, u]) => {
         const btn = document.createElement("button");
 
-        const cost = Math.floor(u.baseCost * Math.pow(1.25, u.count));
+        const cost = getUpgradeCost(u);
 
-        btn.textContent = `${key} (${cost})`;
-
-        btn.onclick = () => buyUpgrade(key);
+        if (key === "costReducer" && u.count >= 1) {
+            btn.textContent = `${key} (MAX)`;
+            btn.disabled = true;
+        } else {
+            btn.textContent = `${key} (${cost})`;
+            btn.onclick = () => buyUpgrade(key);
+        }
 
         container.appendChild(btn);
     });
@@ -155,7 +158,7 @@ function renderSkins() {
     });
 }
 
-// ===== APPLY SKIN (FIX) =====
+// ===== APPLY SKIN =====
 function applySkin() {
     const postac = document.getElementById("postac");
     if (!postac) return;

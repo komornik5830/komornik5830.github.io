@@ -10,14 +10,10 @@ window.game = {
         klik2: { count: 0, baseCost: 200, type: "clickMultiplier", value: 2 },
         klik3: { count: 0, baseCost: 350, type: "clickMultiplier", value: 3 },
         lvlBoost: { count: 0, baseCost: 450, type: "levelBonus", value: 10 },
-        superClick: {
-    count: 0,
-    baseCost: 2000,
-    type: "clickMultiplier",
-    value: 4
-}
-      
+        superClick: { count: 0, baseCost: 2000, type: "clickMultiplier", value: 4 },
 
+        // 🔥 NOWY UPGRADE
+        costReducer: { count: 0, baseCost: 5000, type: "static" }
     },
 
     chestCost: 100,
@@ -37,11 +33,13 @@ window.game = {
         { id: "boost", name: "+50%", type: "multiplier", multiplier: 1.5 },
         { id: "mega", name: "x10", type: "multiplier", multiplier: 10 },
         { id: "auto", name: "+auto", type: "auto", value: 5 }
-   
     ]
 };
 
 const game = window.game;
+
+// 🔥 GLOBAL COST MULTIPLIER
+window.gameUpgradeCostMultiplier = 1.25;
 
 // ===== EVENT SYSTEM =====
 const listeners = [];
@@ -52,6 +50,12 @@ export function subscribe(fn) {
 
 function notify() {
     listeners.forEach(fn => fn());
+}
+
+// ===== COST HELPER =====
+export function getUpgradeCost(upg) {
+    const mult = window.gameUpgradeCostMultiplier || 1.25;
+    return Math.floor(upg.baseCost * Math.pow(mult, upg.count));
 }
 
 // ===== ITEM MULTIPLIER =====
@@ -134,11 +138,20 @@ export function buyUpgrade(key) {
     const upg = game.upgradey[key];
     if (!upg) return;
 
-    const cost = Math.floor(upg.baseCost * Math.pow(1.25, upg.count));
+    // 🔒 jednorazowy upgrade
+    if (key === "costReducer" && upg.count >= 1) return;
+
+    const cost = getUpgradeCost(upg);
 
     if (game.punkty >= cost) {
         game.punkty -= cost;
         upg.count++;
+
+        // 🔥 aktywacja efektu
+        if (key === "costReducer" && upg.count === 1) {
+            window.gameUpgradeCostMultiplier = 1.10;
+        }
+
         notify();
     }
 
