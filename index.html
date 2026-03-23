@@ -3,58 +3,86 @@
 <head>
 <meta charset="UTF-8">
 <title>Token Clicker</title>
+
 <style>
-    body {
-        text-align: center;
-        font-family: Arial;
-        margin-top: 50px;
-        position: relative;
-    }
+body {
+    text-align: center;
+    font-family: Arial;
+    margin-top: 50px;
+    position: relative;
+}
 
-    #postac {
-        font-family: monospace;
-        font-size: 20px;
-        cursor: pointer;
-        white-space: pre;
-        margin-bottom: 20px;
-        user-select: none;
-        height: 400px;
-        color: black;
-    }
+/* POSTAC */
+#postac {
+    font-family: monospace;
+    font-size: 20px;
+    cursor: pointer;
+    white-space: pre;
+    margin-bottom: 20px;
+    user-select: none;
+    height: 400px;
+    color: black;
+}
 
-    #punkty, #poziom {
-        font-size: 30px;
-        margin-top: 20px;
-    }
+/* TEKSTY */
+#punkty, #poziom {
+    font-size: 30px;
+    margin-top: 20px;
+}
 
-    button {
-        font-size: 20px;
-        margin: 10px;
-        cursor: pointer;
-    }
+/* BUTTONY */
+button {
+    font-size: 20px;
+    margin: 10px;
+    cursor: pointer;
+}
 
-    .punktEfekt {
-        position: absolute;
-        font-size: 35px;
-        font-weight: bold;
-        color: rgb(255, 0, 21);
-        pointer-events: none;
-        transition: transform 1s ease-out, opacity 1s ease-out;
-    }
+/* EFEKT */
+.punktEfekt {
+    position: absolute;
+    font-size: 35px;
+    font-weight: bold;
+    color: rgb(255, 0, 21);
+    pointer-events: none;
+    transition: transform 1s ease-out, opacity 1s ease-out;
+}
+
+/* PANEL INVENTORY */
+#inventoryPanel {
+    position: fixed;
+    right: 20px;
+    top: 100px;
+    width: 260px;
+    background: white;
+    border: 2px solid black;
+    border-radius: 10px;
+    padding: 10px;
+}
+
+#inventory {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
 </style>
+
 </head>
 <body>
 
 <div id="postac"></div>
+
 <div id="punkty">Punkty: 0</div>
 <div id="poziom">Poziom kota: 1 (0/2 kliknięć)</div>
 
+<!-- UPGRADEY (DYNAMICZNE) -->
 <div>
-    <button id="autoBtn">Auto +2 pkt co 5s (koszt: 100)</button>
-    <button id="clickBtn">Klik x2 (koszt: 200)</button>
-    <button id="click3Btn">Klik x3 (koszt: 350)</button>
-    <button id="lvlBoostBtn">Lepszy level (koszt: 450)</button>
+    <h2>Upgrade</h2>
+    <div id="upgrades"></div>
 </div>
+
+<!-- SKRÓTY (opcjonalne - możesz usunąć gdy w pełni dynamiczne) -->
+
 
 <div>
     <h2>Sklep skinów</h2>
@@ -64,246 +92,18 @@
     <button id="yellowSkin">Żółty (1000)</button>
 </div>
 
-<script>
-/* =======================
-   LOGIKA GRY
-======================= */
+<div>
+    <h2>Skrzynki</h2>
+    <button id="chestBtn">Skrzynka</button>
+</div>
 
-const game = {
-    punkty: 0,
-    poziom: 1,
-    klikAktualne: 0,
-    klikDoNastepnego: 2,
+<div id="inventoryPanel">
+    <h3>Ekwipunek</h3>
+    <div id="inventory"></div>
+    <p>Max 2 aktywne itemy</p>
+</div>
 
-    upgradey: {
-        auto: { count: 0, baseCost: 100 },
-        klik2: { count: 0, baseCost: 200 },
-        klik3: { count: 0, baseCost: 350 },
-        lvlBoost: { count: 0, baseCost: 450 }
-    }
-};
-
-let aktualnyKolor = "black";
-
-/* =======================
-   UI
-======================= */
-
-function render() {
-    document.getElementById("punkty").textContent = "Punkty: " + game.punkty;
-    document.getElementById("poziom").textContent =
-        "Poziom kota: " + game.poziom + " (" + game.klikAktualne + "/" + game.klikDoNastepnego + ")";
-}
-
-function getCost(upg) {
-    return Math.floor(upg.baseCost * Math.pow(1.25, upg.count));
-}
-
-/* =======================
-   CLICK EFFECT
-======================= */
-
-function pokazPunktyKlikniecia(x, y, ilosc) {
-    const efekt = document.createElement("div");
-    efekt.classList.add("punktEfekt");
-    efekt.textContent = "+" + ilosc;
-    document.body.appendChild(efekt);
-
-    efekt.style.left = x + "px";
-    efekt.style.top = y + "px";
-
-    setTimeout(() => {
-        efekt.style.transform = "translateY(-50px)";
-        efekt.style.opacity = "0";
-    }, 10);
-
-    setTimeout(() => efekt.remove(), 1000);
-}
-
-/* =======================
-   KLIK LOGIKA
-======================= */
-
-function klik(event) {
-
-    let mnoznik = 1;
-
-    if (game.upgradey.klik2.count > 0) {
-        mnoznik *= Math.pow(2, game.upgradey.klik2.count);
-    }
-
-    if (game.upgradey.klik3.count > 0) {
-        mnoznik *= Math.pow(3, game.upgradey.klik3.count);
-    }
-
-    let gain = mnoznik;
-
-    game.punkty += gain;
-    game.klikAktualne += 1;
-
-    let postac = document.getElementById("postac");
-    postac.textContent = otwarta;
-
-    setTimeout(() => {
-        postac.textContent = zamknieta;
-    }, 150);
-
-    pokazPunktyKlikniecia(event.pageX, event.pageY, gain);
-
-    if (game.klikAktualne >= game.klikDoNastepnego) {
-        game.poziom += 1;
-        
-        game.klikAktualne = 0;
-        game.klikDoNastepnego += 2;
-
-        let bonus = game.upgradey.lvlBoost.count > 0 ? 10 * game.upgradey.lvlBoost.count : 1;
-        game.punkty += bonus;
-    }
-
-    render();
-}
-
-document.getElementById("postac").onclick = klik;
-
-/* =======================
-   AUTO INCOME
-======================= */
-
-setInterval(() => {
-    let auto = game.upgradey.auto.count;
-    if (auto > 0) {
-        game.punkty += 2 * auto;
-        render();
-    }
-}, 5000);
-
-/* =======================
-   BUY UPGRADE
-======================= */
-
-function buyUpgrade(key, button) {
-    const upg = game.upgradey[key];
-    const cost = getCost(upg);
-
-    if (game.punkty >= cost) {
-        game.punkty -= cost;
-        upg.count++;
-
-        button.textContent = key + " (lvl " + upg.count + ") koszt: " + getCost(upg);
-
-        render();
-    }
-}
-
-/* =======================
-   BUTTONS
-======================= */
-
-document.getElementById("autoBtn").onclick = function() {
-    buyUpgrade("auto", this);
-}
-
-document.getElementById("clickBtn").onclick = function() {
-    buyUpgrade("klik2", this);
-}
-
-document.getElementById("click3Btn").onclick = function() {
-    buyUpgrade("klik3", this);
-}
-
-document.getElementById("lvlBoostBtn").onclick = function() {
-    buyUpgrade("lvlBoost", this);
-}
-
-/* =======================
-   SKINS (bez zmian)
-======================= */
-
-let redKupione = false;
-let greenKupione = false;
-let blueKupione = false;
-let yellowKupione = false;
-
-document.getElementById("redSkin").onclick = function() {
-    if (!redKupione && game.punkty >= 500) {
-        game.punkty -= 500;
-        redKupione = true;
-        this.textContent = "Czerwony (posiadany)";
-    }
-    if (redKupione) aktualnyKolor = "red";
-    document.getElementById("postac").style.color = aktualnyKolor;
-    render();
-}
-
-document.getElementById("greenSkin").onclick = function() {
-    if (!greenKupione && game.punkty >= 500) {
-        game.punkty -= 500;
-        greenKupione = true;
-        this.textContent = "Zielony (posiadany)";
-    }
-    if (greenKupione) aktualnyKolor = "green";
-    document.getElementById("postac").style.color = aktualnyKolor;
-    render();
-}
-
-document.getElementById("blueSkin").onclick = function() {
-    if (!blueKupione && game.punkty >= 500) {
-        game.punkty -= 500;
-        blueKupione = true;
-        this.textContent = "Niebieski (posiadany)";
-    }
-    if (blueKupione) aktualnyKolor = "blue";
-    document.getElementById("postac").style.color = aktualnyKolor;
-    render();
-}
-
-document.getElementById("yellowSkin").onclick = function() {
-    if (!yellowKupione && game.punkty >= 1000) {
-        game.punkty -= 1000;
-        yellowKupione = true;
-        this.textContent = "Żółty (posiadany)";
-    }
-    if (yellowKupione) aktualnyKolor = "yellow";
-    document.getElementById("postac").style.color = aktualnyKolor;
-    render();
-}
-
-
-let zamknieta =
-`⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢏⠳⢄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠠⣠⠞⠉⡏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡄⠀⠈⠑⠢⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡞⠁⠀⠀⣸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢱⠀⠀⠀⠀⠀⠈⠑⢦⡀⠀⠀⠀⠀⠀⠀⠀⠀⣠⠞⠁⠀⠀⠀⠀⡸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢣⠀⠀⠀⠀⠀⠀⠀⠀⠉⠒⢤⣀⠀⢌⡴⠋⠀⠀⠀⠀⠀⠀⢰⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⡆⠀⠀⠀⠀⠀⣠⠤⠤⣀⠀⠀⠁⠋⠁⠀⠀⠀⠀⠀⠀⠀⡼⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⡄⠀⠀⠀⡴⠁⠀⠀⣾⡆⠀⠀⠀⡞⠉⠉⣲⠀⠀⠀⢠⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⠀⠀⠀⢸⠀⠀⠀⣿⡇⠀⠀⠀⡏⠀⠀⣿⡇⠀⠀⣸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢳⠀⠀⠈⠀⠀⠀⠉⠁⠀⠀⠀⠓⠀⠀⠻⠃⠀⠀⡟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢣⠀⠀⠀⢠⠏⣧⠖⠒⠒⣆⡀⠀⠀⠀⠀⠀⡾⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠳⣄⠀⢱⠀⠀⠀⠀⠀⠀⠈⢣⠀⠀⠀⡟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⠧⣀⣀⠀⠀⠀⠀⣸⢀⡰⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠈⠉⠉⠉⠉⠁⠀⠀⠀`;
-
-let otwarta =
-`⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢏⠳⢄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⠖⠋⠉⡏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡄⠀⠈⠑⠢⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡤⠚⠁⠀⠀⠀⣸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢱⠀⠀⠀⠀⠀⠈⠑⢦⡀⠀⠀⠀⠀⠀⠀⢀⡴⠉⠀⠀⠀⠀⠀⠀⡸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢣⠀⠀⠀⠀⠀⠀⠀⠀⠉⠒⢤⣀⠀⡜⠁⠀⠀⠀⠀⠀⠀⠀⢰⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⡆⠀⢀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠁⠃⠀⠀⠀⠀⢀⣀⠀⠀⡼⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⡄⠀⠉⠳⢄⡀⠀⠀⠀⠀⠀⠀⠀⢀⣀⡔⠊⠉⠀⠀⢠⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⠀⠀⠀⠀⠀⠉⠙⢲⠄⠀⠀⠺⣍⠁⠀⠀⠀⠀⠀⣸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢳⠀⠀⣀⡠⠖⠋⠉⠀⠀⠀⠀⠈⠓⢤⡀⠀⠀⠀⡟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢣⠈⠁⠀⠀⣤⠀⣀⣀⣀⣀⠀⡄⠀⠀⠀⠀⡾⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠳⣄⠀⢠⠏⠛⠀⠀⠀⠀⠛⢹⠀⠀⠀⡟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠓⠧⣀⣀⠀⠀⠀⠀⠀⣇⡰⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-      ⠈⠉⠉⠉⠉⠁⠀`;
-
-document.getElementById("postac").textContent = zamknieta;
-render();
-
-window.game = game;
-window.render = render;
-</script>
+<script type="module" src="./ui.js"></script>
 
 </body>
 </html>
