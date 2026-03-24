@@ -6,13 +6,11 @@ window.game = {
     klikDoNastepnego: 2,
 
     upgradey: {
-        auto: { count: 0, baseCost: 100, type: "auto", value: 5, interval: 5000 },
+        auto: { count: 0, baseCost: 100, type: "auto", value: 5 },
         klik2: { count: 0, baseCost: 200, type: "clickMultiplier", value: 2 },
         klik3: { count: 0, baseCost: 350, type: "clickMultiplier", value: 3 },
         lvlBoost: { count: 0, baseCost: 450, type: "levelBonus", value: 10 },
         superClick: { count: 0, baseCost: 2000, type: "clickMultiplier", value: 4 },
-
-        // 🔥 NOWY UPGRADE
         costReducer: { count: 0, baseCost: 5000, type: "static" }
     },
 
@@ -38,32 +36,60 @@ window.game = {
 
 const game = window.game;
 
-// 🔥 GLOBAL COST MULTIPLIER
 window.gameUpgradeCostMultiplier = 1.25;
 
 // ===== EVENT SYSTEM =====
 const listeners = [];
+
+// 🔥 FIX: stabilne renderowanie (anti-click-loss)
+let renderQueued = false;
 
 export function subscribe(fn) {
     listeners.push(fn);
 }
 
 function notify() {
-    listeners.forEach(fn => fn());
+    if (renderQueued) return;
+
+    renderQueued = true;
+
+    setTimeout(() => {
+        listeners.forEach(fn => fn());
+        renderQueued = false;
+    }, 0);
 }
 
-// ===== COST HELPER =====
+// ===== COST =====
 export function getUpgradeCost(upg) {
     const mult = window.gameUpgradeCostMultiplier || 1.25;
     return Math.floor(upg.baseCost * Math.pow(mult, upg.count));
 }
 
-// ===== ITEM MULTIPLIER =====
+// ===== AUTO / S =====
+export function getAutoPerSecond() {
+    let total = 0;
+
+    Object.values(game.upgradey).forEach(u => {
+        if (u.type === "auto" && u.count > 0) {
+            total += u.value * u.count;
+        }
+    });
+
+    game.equipped.forEach(i => {
+        if (i.type === "auto" && i.value) {
+            total += i.value;
+        }
+    });
+
+    return total;
+}
+
+// ===== ITEM MULT =====
 export function getItemMultiplier() {
     let mult = 1;
 
     game.equipped.forEach(i => {
-        if (i.type === "multiplier" && i.multiplier) {
+        if (i.type === "multiplier") {
             mult *= i.multiplier;
         }
     });
@@ -83,14 +109,11 @@ function getCritMultiplier() {
         }
     });
 
-    if (Math.random() < critChance) {
-        return critMult;
-    }
-
+    if (Math.random() < critChance) return critMult;
     return 1;
 }
 
-// ===== CLICK CALC =====
+// ===== CLICK =====
 export function calculateClickGain() {
     let base = 1;
 
@@ -106,22 +129,21 @@ export function calculateClickGain() {
     return base;
 }
 
-// ===== GAMEPLAY =====
 export function handleClick() {
     const gain = calculateClickGain();
 
     game.punkty += gain;
-    game.klikAktualne += 1;
+    game.klikAktualne++;
 
     if (game.klikAktualne >= game.klikDoNastepnego) {
-        game.poziom += 1;
+        game.poziom++;
         game.klikAktualne = 0;
         game.klikDoNastepnego += 2;
 
         let bonus = 1;
 
         Object.values(game.upgradey).forEach(u => {
-            if (u.type === "levelBonus" && u.count > 0) {
+            if (u.type === "levelBonus") {
                 bonus += u.value * u.count;
             }
         });
@@ -138,7 +160,6 @@ export function buyUpgrade(key) {
     const upg = game.upgradey[key];
     if (!upg) return;
 
-    // 🔒 jednorazowy upgrade
     if (key === "costReducer" && upg.count >= 1) return;
 
     const cost = getUpgradeCost(upg);
@@ -147,7 +168,6 @@ export function buyUpgrade(key) {
         game.punkty -= cost;
         upg.count++;
 
-        // 🔥 aktywacja efektu
         if (key === "costReducer" && upg.count === 1) {
             window.gameUpgradeCostMultiplier = 1.10;
         }
@@ -158,27 +178,25 @@ export function buyUpgrade(key) {
     return cost;
 }
 
-// ===== AUTO =====
+// ===== GAME LOOP =====
+let lastTime = Date.now();
+
 setInterval(() => {
-    let totalAuto = 0;
+    const now = Date.now();
+    const delta = (now - lastTime) / 1000;
 
-    Object.values(game.upgradey).forEach(u => {
-        if (u.type === "auto" && u.count > 0) {
-            totalAuto += u.value * u.count;
-        }
-    });
+    const autoPS = getAutoPerSecond();
 
-    game.equipped.forEach(i => {
-        if (i.type === "auto" && i.value) {
-            totalAuto += i.value;
-        }
-    });
+    if (autoPS > 0) {
+        game.punkty += autoPS * delta;
+    }
 
-    if (totalAuto > 0) {
-        game.punkty += totalAuto;
+    if (Math.floor(now / 100) !== Math.floor(lastTime / 100)) {
         notify();
     }
-}, 5000);
+
+    lastTime = now;
+}, 25);
 
 // ===== CHEST =====
 export function openChest() {

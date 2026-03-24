@@ -6,7 +6,8 @@ import {
     subscribe,
     buySkin,
     setSkin,
-    getUpgradeCost
+    getUpgradeCost,
+    getAutoPerSecond
 } from "./game.js";
 
 const zamknieta = `
@@ -70,7 +71,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // ===== RENDER =====
 function render() {
-    document.getElementById("punkty").textContent = "Punkty: " + game.punkty;
+    document.getElementById("punkty").textContent =
+        "Punkty: " + Math.floor(game.punkty) +
+        " | " + getAutoPerSecond().toFixed(1) + "/s";
 
     document.getElementById("poziom").textContent =
         "Poziom kota: " + game.poziom +
@@ -85,39 +88,53 @@ function render() {
         "Skrzynka (" + game.chestCost + ")";
 }
 
-// ===== UPGRADE UI =====
+// ===== UPGRADE UI (FIXED) =====
 function renderUpgrades() {
     const container = document.getElementById("upgrades");
     if (!container) return;
 
-    container.innerHTML = "";
-
     Object.entries(game.upgradey).forEach(([key, u]) => {
-        const btn = document.createElement("button");
+        let btn = document.getElementById("upg_" + key);
 
         const cost = getUpgradeCost(u);
 
-        if (key === "costReducer" && u.count >= 1) {
-            btn.textContent = `${key} (MAX)`;
-            btn.disabled = true;
-        } else {
-            btn.textContent = `${key} (${cost})`;
-            btn.onclick = () => buyUpgrade(key);
+        let desc = "";
+        if (u.type === "auto") desc = `(+${u.value}/s)`;
+        if (u.type === "clickMultiplier") desc = `(x${u.value})`;
+        if (u.type === "levelBonus") desc = `(+${u.value} lvl)`;
+        if (key === "costReducer") desc = "(tańsze)";
+
+        if (!btn) {
+            btn = document.createElement("button");
+            btn.id = "upg_" + key;
+            container.appendChild(btn);
         }
 
-        container.appendChild(btn);
+        if (key === "costReducer" && u.count >= 1) {
+            btn.textContent = `${key} ${desc} (MAX)`;
+            btn.disabled = true;
+            btn.onclick = null;
+        } else {
+            btn.textContent = `${key} ${desc} (${cost})`;
+            btn.disabled = false;
+            btn.onclick = () => buyUpgrade(key);
+        }
     });
 }
 
-// ===== INVENTORY =====
+// ===== INVENTORY (FIXED) =====
 function renderInventory() {
     const inv = document.getElementById("inventory");
     if (!inv) return;
 
-    inv.innerHTML = "";
-
     game.inventory.forEach(item => {
-        const btn = document.createElement("button");
+        let btn = document.getElementById("inv_" + item.id);
+
+        if (!btn) {
+            btn = document.createElement("button");
+            btn.id = "inv_" + item.id;
+            inv.appendChild(btn);
+        }
 
         const isEquipped = game.equipped.some(i => i.id === item.id);
 
@@ -125,8 +142,6 @@ function renderInventory() {
         btn.style.background = isEquipped ? "#aaffaa" : "#f2f2f2";
 
         btn.onclick = () => toggleEquip(item.id);
-
-        inv.appendChild(btn);
     });
 }
 
